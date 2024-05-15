@@ -12,17 +12,15 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
-
-    - name: Get previous commit hash
-      id: prev-commit
-      run: echo "::set-output name=hash::$(git rev-parse HEAD^1)"
+      with:
+        fetch-depth: 2  # Fetch the last two commits to ensure the previous commit is available
 
     - name: Upload file to Vector DB
       env:
         AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}  # Store your token in GitHub Secrets
         DATASET_ID: '89368c41-6dc0-42aa-a4b1-3b074edf2460'
       run: |
-        prev_commit=${{ steps.prev-commit.outputs.hash }}
+        prev_commit=$(git rev-parse HEAD^1)
         for file in $(git diff --name-only --diff-filter=A $prev_commit HEAD | grep '.csv'); do
           curl --location --request POST "https://ai.choimirai.com/v1/datasets/${{ env.DATASET_ID }}/document/create_by_file" \
           --header "Authorization: Bearer ${{ env.AUTH_TOKEN }}" \
