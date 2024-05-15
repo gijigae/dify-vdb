@@ -1,0 +1,26 @@
+name: Upload Files to Vector DB
+
+on:
+  push:
+    paths:
+      - '**.csv'  # Trigger only when CSV files are added or modified
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Upload file to Vector DB
+      env:
+        AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}  # Store your token in GitHub Secrets
+        DATASET_ID: '89368c41-6dc0-42aa-a4b1-3b074edf2460'
+      run: |
+        for file in $(git diff --name-only --diff-filter=A HEAD~1 HEAD | grep '.csv'); do
+          curl --location --request POST "https://ai.choimirai.com/v1/datasets/${{ env.DATASET_ID }}/document/create_by_file" \
+          --header "Authorization: Bearer ${{ env.AUTH_TOKEN }}" \
+          --form 'data={"indexing_technique":"high_quality","process_rule":{"rules":{"pre_processing_rules":[{"id":"remove_extra_spaces","enabled":true},{"id":"remove_urls_emails","enabled":true}],"segmentation":{"separator":"###","max_tokens":500}},"mode":"custom"}};type=text/plain' \
+          --form "file=@$file"
+        done
